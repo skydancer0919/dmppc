@@ -1,0 +1,90 @@
+#!/bin/env bash
+# -*- coding: utf-8 -*-
+#
+## @Author: sensor-dream
+## @Email: sensor-dream@sensor-dream.ru
+## @Copyright © sensor-dream. All rights reserved. Contacts: sensor-dream@sensor-dream.ru
+## @Copyright © sensor-dream. All rights reserved. Contacts: sensor-dream@sensor-dream.ru
+## @Copyright © Sensor-Dream Boxed System (SDBS). Contacts: sensor-dream@sensor-dream.ru
+## @License: http://www.apache.org/licenses/LICENSE-2.0
+## @Site: https://sensor-dream.ru
+## @File: install_laravel_probe
+## @Creation date file: 02.02.2020, 22:00:36
+
+#
+#   Декларируем имя файла
+#
+
+declare -rx install_laravel_dmppc_script_source="$BASH_SOURCE"
+
+if [[ -z "${main_run_script_path}" ]]; then
+    declare -rx main_run_script_path="$(pwd)"
+    echo "Script runs from ${main_run_script_path}"
+fi
+
+#
+#   Подключаем общую библиотеку и общую конфигурацию
+#
+
+if [[ -z "${main_cfg_script_source}" ]]; then
+    check=1
+    while [[ "${check}" -eq 1 ]]; do
+        if [[ ! -f 'main.cfg' ]]; then
+            if [[ "$(pwd)" != "/" ]]; then
+                cd ../
+            else
+                cd ${main_run_script_path}
+                check=0
+                echo '\e[47;31m'"!!! Not found configuration shared file !!!\033[0m"
+                tput sgr0
+                exit 1
+            fi
+        else
+            check=0
+            declare -rx main_project_path="$(pwd)"
+            . "${main_project_path}/main.cfg"
+            cd "${main_run_script_path}"
+        fi
+    done
+fi
+
+echo "Connect $(readlink -m ${install_laravel_dmppc_script_source})"
+
+function install_install_laravel_dmppc() {
+
+    if [[ ${flag_install} -eq 1 ]]; then
+        echo -n "Install ${path_ilara} platform ? y/n [n]"
+        read key
+        if [[ "${key}" == "y" ]]; then
+            # install composer
+            cd "${main_project_path}${path_ilara}"
+            packages=(
+            )
+
+            for i in ${!packages[*]}; do
+                composer require ${packages[$i]}
+            done
+
+            cd "${main_project_path}"
+
+            set_base_permission 1
+            clear_all_cached_files 1
+
+        fi
+    fi
+
+}
+
+function main_install_laravel_dmppc_script_source() {
+
+    echo "Initialise main function of install_laravel_dmppc script source"
+
+    . "${main_project_path}/install_laravel_ecosystem_clean" -c -p 'root_path' -n 'laravel_ecosystem_bookstack' $@
+
+    install_install_laravel_dmppc $@
+    function_command_pack 1
+    reload_systemctl_service
+
+}
+
+main_install_laravel_dmppc_script_source $@

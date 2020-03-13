@@ -1,0 +1,11 @@
+/.git
+/.idea
+/.vscode
+/Docs
+/fonts
+/Media/Images/DocsPageNavigator
+/laravel_ecosystem_clean
+/laravel_ecosystem_dmppc_probe
+/security_file
+/tools
+.jsbeautifyrc

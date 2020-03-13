@@ -1,0 +1,226 @@
+#!/bin/env bash
+# -*- coding: utf-8 -*-
+#
+
+# install composer
+
+declare -A packages
+
+packages=(
+    [brick_math]='brick/math'
+    [laravel_ui]='laravel/ui'
+    [laracasts_flash]='laracasts/flash'
+    [spatie_laravel_sitemap]='spatie/laravel-sitemap'
+    [spatie_laravel_backup]='spatie/laravel-backup'
+    [laravel_telescope]='laravel/telescope --dev'
+    [barryvdh_laravel_debugbar]='barryvdh/laravel-debugbar --dev'
+)
+
+cat <<EOF >/dev/null
+    [laravel_dusk]='laravel/dusk --dev'
+    [laravel_envoy]='laravel/envoy global'
+    [beyondcode_laravel_websockets]='beyondcode/laravel-websockets'
+    [squizlabs_php_codesniffer]='squizlabs/php_codesniffer --dev'
+    [nwidart_laravel_modules]='nwidart/laravel-modules'
+    [spatie_laravel_permission]='spatie/laravel-permission'
+    [spatie_valuestore]='spatie/valuestore'
+    [joedixon_laravel_translation]='joedixon/laravel-translation --dev'
+    [anhskohbo_no_captcha]='anhskohbo/no-captcha'
+    [larsjanssen6_underconstruction]='larsjanssen6/underconstruction'
+    [php-school_cli_menu]='php-school/cli-menu'
+    [nunomaduro_laravel_console_menu]='nunomaduro/laravel-console-menu'
+    [nunomaduro_collision]='nunomaduro/collision --dev'
+    [orchestra_testbench]='orchestra/testbench --dev'
+    [nunomaduro_larastan]='nunomaduro/larastan --dev'
+    [genealabs_laravel_model_caching]='genealabs/laravel-model-caching'
+    [freshbitsweb_laravel_log_enhancer]='freshbitsweb/laravel-log-enhancer --dev'
+EOF
+
+for key in ${!packages[@]}; do
+    composer require ${packages[$key]}
+done
+
+require_enviroment_file 1
+set_base_permission 1
+
+[[ -z ${packages[laravel_ui]} ]] || php artisan ui vue
+
+if [[ -n ${packages[barryvdh_laravel_debugbar]} ]]; then
+    php artisan vendor:publish --provider="Barryvdh\Debugbar\ServiceProvider"
+fi
+
+if [[ -n ${packages[laravel_telescope]} ]]; then
+    php artisan telescope:install
+    php artisan telescope:publish
+fi
+
+[[ -z ${packages[nwidart_laravel_modules]} ]] || php artisan vendor:publish --provider="Nwidart\Modules\LaravelModulesServiceProvider"
+
+if [[ ! -z ${packages[beyondcode_laravel_websockets]} ]]; then
+    php artisan vendor:publish --provider="BeyondCode\LaravelWebSockets\WebSocketsServiceProvider" --tag="migrations"
+    php artisan vendor:publish --provider="BeyondCode\LaravelWebSockets\WebSocketsServiceProvider" --tag="config"
+fi
+
+if [[ ! -z ${packages[nwidart_laravel_modules]} ]]; then
+    cat <<EOF
+insert in composer.json
+{
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/",
+      "Modules\\": "Modules/" < --- insertion
+    }
+  }
+}
+EOF
+    echo 'Please check composer.json and update is recommendation'
+    read key
+fi
+
+if [[ ! -z ${packages[spatie_laravel_permission]} ]]; then
+    cat <<EOF
+Optional: The service provider will automatically get registered. Or you may manually add the service provider in your config/app.php file:
+
+'providers' => [
+    // ...
+    Spatie\Permission\PermissionServiceProvider::class,
+];
+EOF
+    echo 'Please check config/app.php and update is recommendation'
+    read key
+    php artisan vendor:publish--provider="Spatie\Permission\PermissionServiceProvider"
+fi
+
+[[ -z ${packages[spatie_laravel_sitemap]} ]] || php artisan vendor:publish --provider="Spatie\Sitemap\SitemapServiceProvider" --tag=config
+
+[[ -z ${packages[spatie_laravel_backup]} ]] || php artisan vendor:publish --provider="Spatie\Backup\BackupServiceProvider"
+
+if [[ ! -z ${packages[lavary_menu]} ]]; then
+    cat <<EOF
+If you are in Laravel 5.5+ you won't need to edit your config/app.php, if you are in a previous version of Laravel, please do the following:
+
+'providers' => [
+
+    /*
+     * Laravel Framework Service Providers...
+     */
+    ...
+    Lavary\Menu\ServiceProvider::class,
+    ...
+],
+
+At the end of config/app.php add 'Menu' => Lavary\Menu\Facade::class to the $aliases array:
+
+'aliases' => [
+    'App'       => Illuminate\Support\Facades\App::class,
+    'Artisan'   => Illuminate\Support\Facades\Artisan::class,
+    ...
+    'Menu'      => Lavary\Menu\Facade::class,
+],
+EOF
+    echo 'Please check config/app.php and update is recommendation'
+    read key
+    php artisan vendor:publish --provider="Lavary\Menu\ServiceProvider"
+fi
+
+[[ -z ${packages[joedixon_laravel_translation]} ]] || php artisan vendor:publish --provider="JoeDixon\Translation\TranslationServiceProvider"
+
+if [[ ! -z ${packages[anhskohbo_no_captcha]} ]]; then
+    cat <<EOF
+
+1- NOTE This package supports the auto-discovery feature of Laravel 5.5 and above, So skip these Setup instructions if you're using Laravel 5.5 and above:
+
+    1- The ServiceProvider to the providers array :
+
+        Anhskohbo\NoCaptcha\NoCaptchaServiceProvider::class,
+
+    2- The class alias to the aliases array :
+
+        'NoCaptcha' => Anhskohbo\NoCaptcha\Facades\NoCaptcha::class,
+
+2- Add NOCAPTCHA_SECRET and NOCAPTCHA_SITEKEY in .env file :
+
+    NOCAPTCHA_SECRET=secret-key
+    NOCAPTCHA_SITEKEY=site-key
+
+EOF
+    echo 'Please check config/app.php and update is recommendation'
+    read key
+    php artisan vendor:publish --provider="Anhskohbo\NoCaptcha\NoCaptchaServiceProvider"
+fi
+
+if [[ ! -z ${packages[larsjanssen6_underconstruction]} ]]; then
+    cat <<EOF
+
+The \LarsJanssen\UnderConstruction\UnderConstruction::class middleware must be registered in the kernel:
+
+//app/Http/Kernel.php
+
+protected $routeMiddleware = [
+  // ...
+  'under-construction' => \LarsJanssen\UnderConstruction\UnderConstruction::class,
+];
+
+EOF
+    echo 'Please check app/Http/Kernel.php and update is recommendation'
+    read key
+    php artisan vendor:publish --provider="LarsJanssen\UnderConstruction\UnderConstructionServiceProvider"
+fi
+
+if [[ ! -z ${packages[freshbitsweb_laravel_log_enhancer]} ]]; then
+    cat <<EOF
+
+Example config/logging.php:
+
+'production_stack' => [
+  'driver' => 'stack',
+  'tap' => [Freshbitsweb\LaravelLogEnhancer\LogEnhancer::class], <-- insert
+  'channels' => ['daily', 'slack'],
+],
+
+EOF
+    echo 'Please check config/logging.php and update is recommendation'
+    read key
+    php artisan vendor:publish --tag=laravel-log-enhancer-config
+fi
+
+if [[ ! -z ${packages[nunomaduro_larastan]} ]]; then
+    if [[ ! -f "${main_project_path}${path_ilara}/phpstan.neon" ]]; then
+
+        cat <<EOF >"${main_project_path}${path_ilara}/phpstan.neon"
+includes:
+    - ./vendor/nunomaduro/larastan/extension.neon
+
+parameters:
+
+    paths:
+        - app
+
+    # The level 8 is the highest level
+    level: 5
+
+    ignoreErrors:
+        - '#Unsafe usage of new static#'
+
+    excludes_analyse:
+        - ./*/*/FileToBeExcluded.php
+
+    checkMissingIterableValueType: false
+EOF
+    fi
+fi
+
+php artisan migrate
+# php artisan vendor:publish
+
+# exit
+
+sudo npm i -g @vue/cli
+npm install --save bootstrap core-js @popperjs/core toasts axios vue vuex vue-recaptcha vue-router vue-axios bootstrap-vue vee-validate laravel-echo pusher-js portal-vue
+npm install -D browser-sync browser-sync-webpack-plugin bs-html-injector
+npm install --save bootstrap-icons bootstrap-social
+
+### yarn install && yarn run dev;
+npm install && npm run dev
+
+reload_systemctl_service

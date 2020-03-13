@@ -1,0 +1,171 @@
+#!/bin/env bash
+# -*- coding: utf-8 -*-
+#
+
+function set_base_permission() {
+
+    if [[ $1 -eq 1 ]]; then
+        key='y'
+    else
+        echo -n "Set base permission ? y/n [n]"
+        read key
+    fi
+
+    if [[ "${key}" == "y" ]]; then
+        if [[ -d "${main_project_path}${path_ilara}/storage" && -d "${main_project_path}${path_ilara}/bootstrap/cache" && -d "${main_project_path}${path_ilara}/public" && -d "${main_project_path}${path_ilara}/resources" && -d "${main_project_path}${path_ilara}/database/migrations" ]]; then
+            sudo chown -R ${main_user}.apache "${main_project_path}${path_ilara}/bootstrap/cache" "${main_project_path}${path_ilara}/storage" "${main_project_path}${path_ilara}/public" "${main_project_path}${path_ilara}/resources" "${main_project_path}${path_ilara}/database/migrations"
+            if [[ -f "${main_project_path}${path_ilara}/storage/logs/laravel.log" ]]; then
+                sudo chmod 0666 "${main_project_path}${path_ilara}/storage/logs/laravel.log"
+            else
+                touch "${main_project_path}${path_ilara}/storage/logs/laravel.log"
+                sudo chmod 0666 "${main_project_path}${path_ilara}/storage/logs/laravel.log"
+            fi
+        fi
+
+        printf 'Set base permission from\n%s\n%s\n%s\n%s\n%s\n%s\nOke`s\n' "${main_project_path}${path_ilara}/storage" "${main_project_path}${path_ilara}/bootstrap/cache" "${main_project_path}${path_ilara}/public" "${main_project_path}${path_ilara}/resources" "${main_project_path}${path_ilara}/storage/logs/laravel.log" "${main_project_path}${path_ilara}/database/migrations"
+    fi
+
+}
+
+function rebuild_node_modules() {
+
+    if [[ $1 -eq 1 ]]; then
+        key='y'
+    else
+        echo -n "Rebuild node_modules? y/n [n]"
+        read key
+    fi
+
+    if [[ "${key}" == "y" ]]; then
+        if [[ -d "${main_project_path}${path_ilara}/node_modules" ]]; then
+            cd "${main_project_path}${path_ilara}"
+            # chmod -R a+x "${main_project_path}${path_ilara}/node_modules"; # or npm rebuild; #  or rm -Rf "${main_project_path}/node_modules"; npm install;
+            npm rebuild
+            cd ../
+        else
+            echo "Not ${path_ilara}/node_modules"
+        fi
+    fi
+
+}
+
+function clear_all_cached_files() {
+
+    if [[ $1 -eq 1 ]]; then
+        key='y'
+    else
+        echo -n "Clear all cached files ? y/n [n]"
+        read key
+    fi
+
+    if [[ "${key}" == "y" ]]; then
+        cd "${main_project_path}${path_ilara}"
+        php artisan view:clear
+        php artisan cache:clear
+        php artisan config:clear
+        php artisan route:clear
+        php artisan clear
+        php artisan permission:cache-reset
+        php artisan debugbar:clear
+        cd ../
+        if [[ -f "${main_project_path}${path_ilara}/bootstrap/cache/packages.php" ]]; then
+            rm -f "${main_project_path}${path_ilara}/bootstrap/cache/packages.php"
+            echo "Romoved ${main_project_path}${path_ilara}/bootstrap/cache/packages.php"
+        fi
+        if [[ -f "${main_project_path}${path_ilara}/bootstrap/cache/services.php" ]]; then
+            rm -f "${main_project_path}${path_ilara}/bootstrap/cache/services.php"
+            echo "Romoved ${main_project_path}${path_ilara}/bootstrap/cache/services.php"
+        fi
+    fi
+}
+
+function aretisan_key_generate() {
+
+    if [[ $1 -eq 1 ]]; then
+        key='y'
+    else
+        echo -n "Aretisan key generate ? y/n [n]"
+        read key
+    fi
+
+    if [[ "${key}" == "y" ]]; then
+	cd "${main_project_path}${path_ilara}"
+        php artisan key:generate
+        echo "Ok aretisan key generate"
+        cd ../
+    fi
+}
+
+function require_enviroment_file() {
+
+    if [[ $1 -eq 1 ]]; then
+        key='y'
+    else
+        echo -n "Preparataion enviroment file <.env> ? y/n [n]"
+        read key
+    fi
+
+    if [[ "${key}" == "y" ]]; then
+        if [[ -L "${main_project_path}${path_ilara}/.env" || -f "${main_project_path}${path_ilara}/.env" ]]; then
+            printf "Detected sumlink or file .env, delete symlink %s\n" "${main_project_path}${path_ilara}/.env"
+            rm -f "${main_project_path}${path_ilara}/.env"
+        fi
+
+        if [[ -f "${main_project_path}/security_file/.share_${name_env}.env" ]]; then
+            printf "Not detected sumlink file, create sumlink %s %s\n" "${main_project_path}/security_file/.share_${name_env}.env" "${main_project_path}${path_ilara}/.env"
+            ln -s "${main_project_path}/security_file/.share_${name_env}.env" "${main_project_path}${path_ilara}/.env"
+        else
+            printf "Not detected file .share_${name_env}.env\n"
+            if [[ -f "${main_project_path}/.env.example" ]]; then
+                printf "Copy %s\n to %s\n" "${main_project_path}/.env.example" "${main_project_path}/security_file/.share_${name_env}.env"
+                cp "${main_project_path}/.env.example" "${main_project_path}/security_file/.share_${name_env}.env"
+            else
+                if [[ -f "${main_project_path}${path_ilara}/.env.example" ]]; then
+                    printf "Copy %s\n to %s\n" "${main_project_path}${path_ilara}/.env.example" "${main_project_path}/security_file/.share_${name_env}.env"
+                    cp "${main_project_path}${path_ilara}/.env.example" "${main_project_path}/security_file/.share_${name_env}.env"
+                else
+                    printf "Not detected configuration files:\n\t%s\n\t%s\n\t%s\nexit\n" "${main_project_path}/security_file/.share_${name_env}.env" "${main_project_path}${path_ilara}/.env" "${main_project_path}${path_ilara}/.env.example"
+                    exit 1
+                fi
+            fi
+            echo -e "\nPlease configure the configuration in ${path_ilara}/.env file\n"
+            read key
+            aretisan_key_generate 1
+        fi
+    fi
+}
+
+function set_sumlink_command_for_artisan() {
+    echo -n "Set sumlink command arti -> php artisan, for bash environment ${HOME}. FOR LINUX ONLY y/n [n]"
+    read key
+    if [[ "${key}" == "y" ]]; then
+        if [[ -f ${path_ilara}/artisan ]]; then
+            grep -q "alias arti=\"php artisan\"" "$HOME/.bashrc" || echo "alias arti=\"php artisan\"" >>"$HOME/.bashrc"
+            source $HOME/.bashrc
+            # . $HOME/.bashrc;
+        fi
+    fi
+}
+
+function function_command_pack() {
+
+    if [[ ${function_command_pack_disable} -eq 0 || $1 -eq 1 ]]; then
+        require_enviroment_file
+        aretisan_key_generate
+        set_base_permission
+        clear_all_cached_files
+        rebuild_node_modules
+        set_sumlink_command_for_artisan
+    fi
+}
+
+function reload_systemctl_service() {
+    if [[ $(sudo systemctl is-active memcached) == 'active' ]]; then
+        echo "Memcached is active, restart"
+        sudo systemctl restart memcached
+    fi
+    if [[ $(sudo systemctl is-active redis) == 'active' ]]; then
+        echo "Redis is active, restart"
+        sudo systemctl restart redis
+    fi
+}
