@@ -12,7 +12,7 @@
 
 #### GO
 
-[For main development instruction.](guides/main_instruction/initial.md "Read clean installation of Larave.")
+[For main development instruction.](/guides/main_instruction/initial.md "Read clean installation of Larave.")
 
 1. [!!! Read about Laravel](/guides/LARAVEL.md "Read about Laravel")
 2. [Clean installation of Laravel](/guides/istalation/Clean_installation_of_Laravel.md "Clean installation of Laravel")
