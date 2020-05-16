@@ -18,8 +18,8 @@
 declare -rx install_laravel_dmppc_script_source="$BASH_SOURCE"
 
 if [[ -z "${main_run_script_path}" ]]; then
-    declare -rx main_run_script_path="$(pwd)"
-    echo "Script runs from ${main_run_script_path}"
+  declare -rx main_run_script_path="$(pwd)"
+  echo "Script runs from ${main_run_script_path}"
 fi
 
 #
@@ -27,99 +27,115 @@ fi
 #
 
 if [[ -z "${main_cfg_script_source}" ]]; then
-    check=1
-    while [[ "${check}" -eq 1 ]]; do
-        if [[ ! -f 'main.cfg' ]]; then
-            if [[ "$(pwd)" != "/" ]]; then
-                cd ../
-            else
-                cd ${main_run_script_path}
-                check=0
-                echo '\e[47;31m'"!!! Not found configuration shared file !!!\033[0m"
-                tput sgr0
-                exit 1
-            fi
-        else
-            check=0
-            declare -rx main_project_path="$(pwd)"
-            . "${main_project_path}/main.cfg"
-            cd "${main_run_script_path}"
-        fi
-    done
+  check=1
+  while [[ "${check}" -eq 1 ]]; do
+    if [[ ! -f 'main.cfg' ]]; then
+      if [[ "$(pwd)" != "/" ]]; then
+        cd ../
+      else
+        cd ${main_run_script_path}
+        check=0
+        echo '\e[47;31m'"!!! Not found configuration shared file !!!\033[0m"
+        tput sgr0
+        exit 1
+      fi
+    else
+      check=0
+      declare -rx main_project_path="$(pwd)"
+      . "${main_project_path}/main.cfg"
+      cd "${main_run_script_path}"
+    fi
+  done
 fi
 
 echo "Connect $(readlink -m ${install_laravel_dmppc_script_source})"
 
 function install_install_laravel_dmppc() {
-
-    if [[ $1 -eq 1 ]]; then
-        echo -n "Install ${path_ilara} platform ? y/n [n]"
-        read key
-        if [[ "${key}" == "y" ]]; then
-
-            name_env=${path_ilara////}
-
-            [[ -d "${main_project_path}${path_ilara}" ]] || composer create-project --prefer-dist laravel/laravel "${name_env}"
-
-            cd "${main_project_path}${path_ilara}"
-
-            declare -A  packages
-
-            packages=(
-                [brick_math]='brick/math'
-                [laravel_ui]='laravel/ui'
-                [laravel_telescope]='laravel/telescope --dev'
-                [barryvdh_laravel_debugbar]='barryvdh/laravel-debugbar --dev'
-            )
-
-            for key in ${!packages[@]}; do
-                composer require ${packages[$key]}
-            done
-
-            [[ -z ${packages[laravel_ui]} ]] || php artisan ui vue --auth
-
-            if [[ -n ${packages[barryvdh_laravel_debugbar]} ]]; then
-                php artisan vendor:publish --provider="Barryvdh\Debugbar\ServiceProvider"
-            fi
-
-            if [[ -n ${packages[laravel_telescope]} ]]; then
-                php artisan telescope:install
-                php artisan telescope:publish
-            fi
-
-            sudo npm i -g @vue/cli
-            npm install --save  core-js pusher-js
-            npm install --save vue vuex vue-recaptcha vue-router vue-axios vee-validate portal-vue
-            npm install --save toasts @popperjs/core
-            npm install --save bootstrap bootstrap-vue
-            npm install --save axioslaravel-echo
-            npm install -D browser-sync browser-sync-webpack-plugin bs-html-injector
-            npm remove jQuery
-
-            ### yarn install && yarn run dev;
-            npm install && npm run dev
-
-            cd "${main_project_path}"
-
-        fi
+  
+  if [[ $1 -eq 1 ]]; then
+    echo -n "Install ${path_ilara} platform ? y/n [n]"
+    read key
+    if [[ "${key}" == "y" ]]; then
+      
+      name_env=${path_ilara////}
+      
+      [[ -d "${main_project_path}${path_ilara}" ]] || composer create-project --prefer-dist laravel/laravel "${name_env}"
+      
+      cd "${main_project_path}${path_ilara}"
+      
+      declare -A  packages
+      
+      packages=(
+        [brick_math]='brick/math'
+        [laravel_ui]='laravel/ui'
+        [beyondcode_laravel_websockets]='beyondcode/laravel-websockets'
+        [backpack_crud]='backpack/crud'
+        [backpack_generators]='backpack/generators --dev'
+        [laravel_telescope]='laravel/telescope --dev'
+        [barryvdh_laravel_debugbar]='barryvdh/laravel-debugbar --dev'
+        [squizlabs_php_codesniffer]='squizlabs/php_codesniffer --dev'
+        [laracasts_generators]='laracasts/generators --dev'
+      )
+      
+      for key in ${!packages[@]}; do
+        composer require ${packages[$key]}
+      done
+      
+      [[ -z ${packages[laravel_ui]} ]] || php artisan ui vue --auth
+      
+      if [[ -n ${packages[barryvdh_laravel_debugbar]} ]]; then
+        php artisan vendor:publish --provider="Barryvdh\Debugbar\ServiceProvider"
+      fi
+      
+      if [[ -n ${packages[laravel_telescope]} ]]; then
+        php artisan telescope:install
+        php artisan telescope:publish
+      fi
+      
+      if [[ -n ${packages[beyondcode_laravel_websockets]} ]]; then
+        php artisan vendor:publish --provider="BeyondCode\LaravelWebSockets\WebSocketsServiceProvider" --tag="migrations"
+        php artisan vendor:publish --provider="BeyondCode\LaravelWebSockets\WebSocketsServiceProvider" --tag="config"
+      fi
+      
+      if [[ -n ${packages[backpack_crud]} && -n ${packages[backpack_generators]} ]]; then
+        php artisan backpack:install
+      fi
+      
+      php artisan migrate
+      
+      sudo npm i -g @vue/cli
+      npm install --save  core-js pusher-js
+      npm install --save vue vuex vue-recaptcha vue-router vue-axios vee-validate portal-vue
+      npm install --save toasts @popperjs/core
+      npm install --save bootstrap bootstrap-vue
+      npm install --save axioslaravel-echo
+      npm install -D browser-sync browser-sync-webpack-plugin bs-html-injector
+      npm remove jQuery
+      
+      ### yarn install && yarn run dev;
+      npm install && npm run dev
+      
+      cd "${main_project_path}"
+      
     fi
-
+  fi
+  
 }
 
 function main_install_laravel_dmppc_script_source() {
-
-    echo "Initialise main function of install_laravel_dmppc script source"
-
-    # . "${main_project_path}/install_laravel_ecosystem_clean" -c -p '/laravel_ecosystem_dmppc' $@
-
-    path_ilara="/laravel_ecosystem_dmppc"
-
-    . "${main_project_path}/shared_library"
-
-    install_install_laravel_dmppc 1
-    function_command_pack 1
-    reload_systemctl_service
-
+  
+  echo "Initialise main function of install_laravel_dmppc script source"
+  
+  # . "${main_project_path}/install_laravel_ecosystem_clean" -c -p '/laravel_ecosystem_dmppc' $@
+  
+  path_ilara="/laravel_ecosystem_dmppc"
+  
+  . "${main_project_path}/shared_library"
+  
+  install_install_laravel_dmppc 1
+  function_command_pack 1
+  reload_systemctl_service
+  
 }
 
 main_install_laravel_dmppc_script_source $@
