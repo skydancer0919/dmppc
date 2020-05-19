@@ -67,9 +67,13 @@ function install_install_laravel_dmppc() {
       
       packages=(
         [brick_math]='brick/math'
+        # [laravel_ui]='laravel/ui --auth'
         [laravel_ui]='laravel/ui'
         [beyondcode_laravel_websockets]='beyondcode/laravel-websockets'
         [backpack_crud]='backpack/crud'
+        [backpack_permissionmanager]='backpack/permissionmanager'
+        [backpack_settings]='backpack/settings'
+        [backpack_pagemanager]='backpack/pagemanager'
         [backpack_generators]='backpack/generators --dev'
         [laravel_telescope]='laravel/telescope --dev'
         [barryvdh_laravel_debugbar]='barryvdh/laravel-debugbar --dev'
@@ -81,7 +85,9 @@ function install_install_laravel_dmppc() {
         composer require ${packages[$key]}
       done
       
-      [[ -z ${packages[laravel_ui]} ]] || php artisan ui vue --auth
+      # [[ -z ${packages[laravel_ui]} ]] || php artisan ui vue --auth
+      ### For BACKPAK remove ralavel auth
+      [[ -z ${packages[laravel_ui]} ]] || php artisan ui vue
       
       if [[ -n ${packages[barryvdh_laravel_debugbar]} ]]; then
         php artisan vendor:publish --provider="Barryvdh\Debugbar\ServiceProvider"
@@ -97,8 +103,102 @@ function install_install_laravel_dmppc() {
         php artisan vendor:publish --provider="BeyondCode\LaravelWebSockets\WebSocketsServiceProvider" --tag="config"
       fi
       
-      if [[ -n ${packages[backpack_crud]} && -n ${packages[backpack_generators]} ]]; then
+      if [[ -n ${packages[backpack_crud]} && -n ${packages[backpack_generators]} && -n ${packages[backpack_permissionmanager]} && -n ${packages[backpack_settings]} && -n ${packages[backpack_pagemanager]} ]]; then
         php artisan backpack:install
+        php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" --tag="migrations"
+        php artisan migrate
+        php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" --tag="config"
+        echo ' then First, add the Spatie\Permission\Traits\HasRoles trait to your User model(s). Critical https://github.com/Laravel-Backpack/PermissionManager'
+        php artisan vendor:publish --provider="Backpack\PermissionManager\PermissionManagerServiceProvider"
+        echo 'Use https://github.com/Laravel-Backpack/PermissionManager for full setting. Instalation next step not specifically'
+        php artisan vendor:publish --provider="Backpack\Settings\SettingsServiceProvider"
+        php artisan migrate
+        # [optional] add a menu item for it to the sidebar_content file
+        php artisan backpack:add-sidebar-content "<li class='nav-item'><a class='nav-link' href='{{ backpack_url('setting') }}'><i class='nav-icon la la-cog'></i> <span>Settings</span></a></li>"
+        
+        # [optional] insert some example dummy data to the database
+        php artisan db:seed --class="Backpack\Settings\database\seeds\SettingsTableSeeder"
+        if [[ ! -f "${main_project_path}${path_ilara}/app/PageTemplates.php" ]]; then
+          cat << EOF > "${main_project_path}${path_ilara}/app/PageTemplates.php"
+<?php
+
+namespace App;
+
+trait PageTemplates
+{
+    /*
+    |--------------------------------------------------------------------------
+    | Page Templates for Backpack\PageManager
+    |--------------------------------------------------------------------------
+    |
+    | Each page template has its own method, that define what fields should show up using the Backpack\CRUD API.
+    | Use snake_case for naming and PageManager will make sure it looks pretty in the create/update form
+    | template dropdown.
+    |
+    | Any fields defined here will show up after the standard page fields:
+    | - select template
+    | - page name (only seen by admins)
+    | - page title
+    | - page slug
+    */
+
+    private function services()
+    {
+        $this->crud->addField([   // CustomHTML
+                        'name' => 'metas_separator',
+                        'type' => 'custom_html',
+                        'value' => '<br><h2>'.trans('backpack::pagemanager.metas').'</h2><hr>',
+                    ]);
+        $this->crud->addField([
+                        'name' => 'meta_title',
+                        'label' => trans('backpack::pagemanager.meta_title'),
+                        'fake' => true,
+                        'store_in' => 'extras',
+                    ]);
+        $this->crud->addField([
+                        'name' => 'meta_description',
+                        'label' => trans('backpack::pagemanager.meta_description'),
+                        'fake' => true,
+                        'store_in' => 'extras',
+                    ]);
+        $this->crud->addField([
+                        'name' => 'meta_keywords',
+                        'type' => 'textarea',
+                        'label' => trans('backpack::pagemanager.meta_keywords'),
+                        'fake' => true,
+                        'store_in' => 'extras',
+                    ]);
+        $this->crud->addField([   // CustomHTML
+                        'name' => 'content_separator',
+                        'type' => 'custom_html',
+                        'value' => '<br><h2>'.trans('backpack::pagemanager.content').'</h2><hr>',
+                    ]);
+        $this->crud->addField([
+                        'name' => 'content',
+                        'label' => trans('backpack::pagemanager.content'),
+                        'type' => 'wysiwyg',
+                        'placeholder' => trans('backpack::pagemanager.content_placeholder'),
+                    ]);
+    }
+
+    private function about_us()
+    {
+        $this->crud->addField([
+                        'name' => 'content',
+                        'label' => trans('backpack::pagemanager.content'),
+                        'type' => 'wysiwyg',
+                        'placeholder' => trans('backpack::pagemanager.content_placeholder'),
+                    ]);
+    }
+}
+EOF
+          echo "rebuild epta"
+          composer require backpack/pagemanager
+          php artisan vendor:publish --provider="Backpack\PageManager\PageManagerServiceProvider"
+          php artisan migrate
+          php artisan backpack:add-sidebar-content "<li class='nav-item'><a class='nav-link' href='{{ backpack_url('page') }}'><i class='nav-icon fa fa-file-o'></i> <span>Pages</span></a></li>"
+          echo 'howto https://github.com/Laravel-Backpack/PageManager enjoy'
+        fi
       fi
       
       php artisan migrate
@@ -110,7 +210,7 @@ function install_install_laravel_dmppc() {
       npm install --save bootstrap bootstrap-vue
       npm install --save axioslaravel-echo
       npm install -D browser-sync browser-sync-webpack-plugin bs-html-injector
-      npm remove jQuery
+      # npm remove jQuery
       
       ### yarn install && yarn run dev;
       npm install && npm run dev
@@ -128,9 +228,9 @@ function main_install_laravel_dmppc_script_source() {
   
   # . "${main_project_path}/install_laravel_ecosystem_clean" -c -p '/laravel_ecosystem_dmppc' $@
   
-  path_ilara="/laravel_ecosystem_dmppc"
-  
   . "${main_project_path}/shared_library"
+  
+  path_ilara="/laravel_ecosystem_dmppc"
   
   install_install_laravel_dmppc 1
   function_command_pack 1
